@@ -30,6 +30,7 @@
 
     <modules>
         <module>j3dtiles-impl-v1</module>
+        <module>j3dtiles-model</module>
     </modules>
 
 </project>
