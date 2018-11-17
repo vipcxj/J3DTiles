@@ -29,11 +29,9 @@ import java.util.zip.ZipInputStream;
  */
 public class IfcXmlDeserializer {
 
-    private PackageMetaData packageMetaData;
     private IfcModel model;
 
     public void init(PackageMetaData packageMetaData) {
-        this.packageMetaData = packageMetaData;
         this.model = new BasicIfcModel(packageMetaData, null);
     }
 
