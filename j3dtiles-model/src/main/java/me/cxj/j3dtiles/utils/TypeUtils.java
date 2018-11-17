@@ -1,14 +1,28 @@
 package me.cxj.j3dtiles.utils;
 
-import me.cxj.j3dtiles.model.v1.FloatVec3;
-import me.cxj.j3dtiles.model.v1.FloatVec4;
-
+import java.lang.reflect.Array;
 import java.util.List;
 
 /**
  * Created by vipcxj on 2018/10/30.
  */
 public class TypeUtils {
+
+    private static int checkArrayLength(Object array, Integer length) {
+        int size = Array.getLength(array);
+        if (length != null && size != length) {
+            throw new IllegalArgumentException("Mismatched array length. Expect " + length + ", " + size + " in fact.");
+        }
+        return size;
+    }
+
+    private static int checkListLength(List list, Integer length) {
+        int size = list.size();
+        if (length != null && size != length) {
+            throw new IllegalArgumentException("Mismatched list length. Expect " + length + ", " + size + " in fact.");
+        }
+        return size;
+    }
 
     public static byte toByte(Object data) {
         if (data instanceof Byte) {
@@ -23,16 +37,71 @@ public class TypeUtils {
         throw new IllegalArgumentException("Unable to transform " + data + " to a byte value");
     }
 
-    public static byte[] toByteArray(List data, int length) {
-        if (length >= 0 && data.size() != length) {
-            throw new IllegalArgumentException("Unable to transform " + data + " to a byte array with length " + length + ". Length mismatched.");
+    public static byte toUnsignedByte(Object data) {
+        if (data instanceof Byte) {
+            return (byte) data;
         }
-        int size = length >= 0 ? length : data.size();
-        byte[] out = new byte[size];
-        for (int i = 0; i < size; ++i) {
-            out[i] = toByte(data.get(i));
+        if (data instanceof Number) {
+            return (byte) ((Number) data).intValue();
         }
-        return out;
+        if (data instanceof String) {
+            return (byte) Short.parseShort((String) data);
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to an unsigned byte value");
+    }
+
+    public static byte[] toByteArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof byte[]) {
+            return (byte[]) data;
+        }
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            byte[] out = new byte[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toByte(Array.get(data, i));
+            }
+            return out;
+         }
+         if (data instanceof List) {
+             List list = (List) data;
+             int size = checkListLength(list, length);
+             byte[] out = new byte[size];
+             for (int i = 0; i < size; ++i) {
+                 out[i] = toByte(list.get(i));
+             }
+             return out;
+         }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a byte array value");
+    }
+
+    public static byte[] toUnsignedByteArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof byte[]) {
+            return (byte[]) data;
+        }
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            byte[] out = new byte[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toUnsignedByte(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            byte[] out = new byte[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toUnsignedByte(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a unsigned byte array value");
     }
 
     public static short toShort(Object data) {
@@ -48,16 +117,71 @@ public class TypeUtils {
         throw new IllegalArgumentException("Unable to transform " + data + " to a short value");
     }
 
-    public static short[] toShortArray(List data, int length) {
-        if (length >= 0 && data.size() != length) {
-            throw new IllegalArgumentException("Unable to transform " + data + " to a short array with length " + length + ". Length mismatched.");
+    public static short toUnsignedShort(Object data) {
+        if (data instanceof Short) {
+            return (Short) data;
         }
-        int size = length >= 0 ? length : data.size();
-        short[] out = new short[size];
-        for (int i = 0; i < size; ++i) {
-            out[i] = toShort(data.get(i));
+        if (data instanceof Number) {
+            return (short) ((Number) data).intValue();
         }
-        return out;
+        if (data instanceof String) {
+            return (short) Integer.parseInt((String) data);
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a unsigned short value");
+    }
+
+    public static short[] toShortArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof short[]) {
+            return (short[]) data;
+        }
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            short[] out = new short[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toShort(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            short[] out = new short[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toShort(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a short array value");
+    }
+
+    public static short[] toUnsignedShortArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof short[]) {
+            return (short[]) data;
+        }
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            short[] out = new short[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toUnsignedShort(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            short[] out = new short[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toUnsignedShort(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to an unsigned short array value");
     }
 
     public static int toInteger(Object data) {
@@ -73,16 +197,71 @@ public class TypeUtils {
         throw new IllegalArgumentException("Unable to transform " + data + " to a integer value");
     }
 
-    public static int[] toIntegerArray(List data, int length) {
-        if (length >= 0 && data.size() != length) {
-            throw new IllegalArgumentException("Unable to transform " + data + " to a integer array with length " + length + ". Length mismatched.");
+    public static int toUnsignedInteger(Object data) {
+        if (data instanceof Integer) {
+            return (Integer) data;
         }
-        int size = length >= 0 ? length : data.size();
-        int[] out = new int[size];
-        for (int i = 0; i < size; ++i) {
-            out[i] = toInteger(data.get(i));
+        if (data instanceof Number) {
+            return (int) ((Number) data).longValue();
         }
-        return out;
+        if (data instanceof String) {
+            return (int) Long.parseLong((String) data);
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to an unsigned integer value");
+    }
+
+    public static int[] toIntegerArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof int[]) {
+            return (int[]) data;
+        }
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            int[] out = new int[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toInteger(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            int[] out = new int[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toInteger(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a int array value");
+    }
+
+    public static int[] toUnsignedIntegerArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
+        }
+        if (data instanceof int[]) {
+            return (int[]) data;
+        }
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            int[] out = new int[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toUnsignedInteger(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            int[] out = new int[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toUnsignedInteger(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to an unsigned int array value");
     }
 
     public static long toLong(Object data) {
@@ -98,16 +277,31 @@ public class TypeUtils {
         throw new IllegalArgumentException("Unable to transform " + data + " to a long value");
     }
 
-    public static long[] toLongArray(List data, int length) {
-        if (length >= 0 && data.size() != length) {
-            throw new IllegalArgumentException("Unable to transform " + data + " to a long array with length " + length + ". Length mismatched.");
+    public static long[] toLongArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
         }
-        int size = length >= 0 ? length : data.size();
-        long[] out = new long[size];
-        for (int i = 0; i < size; ++i) {
-            out[i] = toLong(data.get(i));
+        if (data instanceof long[]) {
+            return (long[]) data;
         }
-        return out;
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            long[] out = new long[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toLong(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            long[] out = new long[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toLong(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a long array value");
     }
 
     public static float toFloat(Object data) {
@@ -123,16 +317,31 @@ public class TypeUtils {
         throw new IllegalArgumentException("Unable to transform " + data + " to a float value");
     }
 
-    public static float[] toFloatArray(List data, int length) {
-        if (length >= 0 && data.size() != length) {
-            throw new IllegalArgumentException("Unable to transform " + data + " to a float array with length " + length + ". Length mismatched.");
+    public static float[] toFloatArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
         }
-        int size = length >= 0 ? length : data.size();
-        float[] out = new float[size];
-        for (int i = 0; i < size; ++i) {
-            out[i] = toFloat(data.get(i));
+        if (data instanceof float[]) {
+            return (float[]) data;
         }
-        return out;
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            float[] out = new float[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toFloat(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            float[] out = new float[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toFloat(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a float array value");
     }
 
     public static double toDouble(Object data) {
@@ -148,16 +357,31 @@ public class TypeUtils {
         throw new IllegalArgumentException("Unable to transform " + data + " to a double value");
     }
 
-    public static double[] toDoubleArray(List data, int length) {
-        if (length >= 0 && data.size() != length) {
-            throw new IllegalArgumentException("Unable to transform " + data + " to a double array with length " + length + ". Length mismatched.");
+    public static double[] toDoubleArray(Object data, Integer length) {
+        if (data == null) {
+            return null;
         }
-        int size = length >= 0 ? length : data.size();
-        double[] out = new double[size];
-        for (int i = 0; i < size; ++i) {
-            out[i] = toDouble(data.get(i));
+        if (data instanceof double[]) {
+            return (double[]) data;
         }
-        return out;
+        if (data.getClass().isArray()) {
+            int size = checkArrayLength(data, length);
+            double[] out = new double[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toDouble(Array.get(data, i));
+            }
+            return out;
+        }
+        if (data instanceof List) {
+            List list = (List) data;
+            int size = checkListLength(list, length);
+            double[] out = new double[size];
+            for (int i = 0; i < size; ++i) {
+                out[i] = toDouble(list.get(i));
+            }
+            return out;
+        }
+        throw new IllegalArgumentException("Unable to transform " + data + " to a double array value");
     }
 
     public static Boolean toBoolean(Object data) {
@@ -174,138 +398,5 @@ public class TypeUtils {
             return false;
         }
         throw new IllegalArgumentException("Unable to transform " + data + " to a boolean value");
-    }
-
-    public static FloatVec3 toFloatVec3(Object data) {
-        if (data instanceof FloatVec3) {
-            return (FloatVec3) data;
-        }
-        if (data instanceof List && ((List) data).size() == 3) {
-            List listData = (List) data;
-            FloatVec3 vec = new FloatVec3();
-            vec.setX(toFloat(listData.get(0)));
-            vec.setY(toFloat(listData.get(1)));
-            vec.setZ(toFloat(listData.get(2)));
-            return vec;
-        }
-        if (data instanceof Object[] && ((Object[]) data).length == 3) {
-            Object[] arrayData = (Object[]) data;
-            FloatVec3 vec = new FloatVec3();
-            vec.setX(toFloat(arrayData[0]));
-            vec.setY(toFloat(arrayData[1]));
-            vec.setZ(toFloat(arrayData[2]));
-            return vec;
-        }
-        if (data instanceof float[] && ((float[]) data).length == 3) {
-            float[] arrayData = (float[]) data;
-            FloatVec3 vec = new FloatVec3();
-            vec.setX(arrayData[0]);
-            vec.setY(arrayData[1]);
-            vec.setZ(arrayData[2]);
-            return vec;
-        }
-        if (data instanceof double[] && ((double[]) data).length == 3) {
-            double[] arrayData = (double[]) data;
-            FloatVec3 vec = new FloatVec3();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            return vec;
-        }
-        if (data instanceof int[] && ((int[]) data).length == 3) {
-            int[] arrayData = (int[]) data;
-            FloatVec3 vec = new FloatVec3();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            return vec;
-        }
-        if (data instanceof long[] && ((long[]) data).length == 3) {
-            long[] arrayData = (long[]) data;
-            FloatVec3 vec = new FloatVec3();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            return vec;
-        }
-        if (data instanceof short[] && ((short[]) data).length == 3) {
-            short[] arrayData = (short[]) data;
-            FloatVec3 vec = new FloatVec3();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            return vec;
-        }
-        throw new IllegalArgumentException("Unable to transform " + data + " to a float vector3 value");
-    }
-
-    public static FloatVec4 toFloatVec4(Object data) {
-        if (data instanceof FloatVec4) {
-            return (FloatVec4) data;
-        }
-        if (data instanceof List && ((List) data).size() == 3) {
-            List listData = (List) data;
-            FloatVec4 vec = new FloatVec4();
-            vec.setX(toFloat(listData.get(0)));
-            vec.setY(toFloat(listData.get(1)));
-            vec.setZ(toFloat(listData.get(2)));
-            vec.setW(toFloat(listData.get(3)));
-            return vec;
-        }
-        if (data instanceof Object[] && ((Object[]) data).length == 4) {
-            Object[] arrayData = (Object[]) data;
-            FloatVec4 vec = new FloatVec4();
-            vec.setX(toFloat(arrayData[0]));
-            vec.setY(toFloat(arrayData[1]));
-            vec.setZ(toFloat(arrayData[2]));
-            vec.setW(toFloat(arrayData[3]));
-            return vec;
-        }
-        if (data instanceof float[] && ((float[]) data).length == 4) {
-            float[] arrayData = (float[]) data;
-            FloatVec4 vec = new FloatVec4();
-            vec.setX(arrayData[0]);
-            vec.setY(arrayData[1]);
-            vec.setZ(arrayData[2]);
-            vec.setW(arrayData[3]);
-            return vec;
-        }
-        if (data instanceof double[] && ((double[]) data).length == 4) {
-            double[] arrayData = (double[]) data;
-            FloatVec4 vec = new FloatVec4();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            vec.setW((float) arrayData[3]);
-            return vec;
-        }
-        if (data instanceof int[] && ((int[]) data).length == 4) {
-            int[] arrayData = (int[]) data;
-            FloatVec4 vec = new FloatVec4();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            vec.setW((float) arrayData[3]);
-            return vec;
-        }
-        if (data instanceof long[] && ((long[]) data).length == 4) {
-            long[] arrayData = (long[]) data;
-            FloatVec4 vec = new FloatVec4();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            vec.setW((float) arrayData[3]);
-            return vec;
-        }
-        if (data instanceof short[] && ((short[]) data).length == 4) {
-            short[] arrayData = (short[]) data;
-            FloatVec4 vec = new FloatVec4();
-            vec.setX((float) arrayData[0]);
-            vec.setY((float) arrayData[1]);
-            vec.setZ((float) arrayData[2]);
-            vec.setW((float) arrayData[3]);
-            return vec;
-        }
-        throw new IllegalArgumentException("Unable to transform " + data + " to a float vector3 value");
     }
 }

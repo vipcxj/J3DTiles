@@ -1,8 +1,5 @@
 package me.cxj.j3dtiles.utils;
 
-import me.cxj.j3dtiles.model.v1.FloatVec3;
-import me.cxj.j3dtiles.model.v1.FloatVec4;
-
 /**
  * Created by vipcxj on 2018/10/30.
  */
@@ -98,23 +95,6 @@ public class StreamUtils {
 
     public static double bytes2DoubleLE(byte[] bytes, int offset) {
         return Double.longBitsToDouble(bytes2LongLE(bytes, offset));
-    }
-
-    public static FloatVec3 bytes2FloatVec3LE(byte[] bytes, int offset) {
-        FloatVec3 vec3 = new FloatVec3();
-        vec3.setX(bytes2FloatLE(bytes, offset));
-        vec3.setY(bytes2FloatLE(bytes, offset + 4));
-        vec3.setZ(bytes2FloatLE(bytes, offset + 8));
-        return vec3;
-    }
-
-    public static FloatVec4 bytes2FloatVec4LE(byte[] bytes, int offset) {
-        FloatVec4 vec = new FloatVec4();
-        vec.setX(bytes2FloatLE(bytes, offset));
-        vec.setY(bytes2FloatLE(bytes, offset + 4));
-        vec.setZ(bytes2FloatLE(bytes, offset + 8));
-        vec.setW(bytes2FloatLE(bytes, offset + 12));
-        return vec;
     }
 
     public static void byteArrayCopyToByteArrayLE(byte[] target, int offset, byte[] data) {

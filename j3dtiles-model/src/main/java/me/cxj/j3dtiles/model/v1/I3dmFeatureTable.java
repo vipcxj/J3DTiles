@@ -1,16 +1,19 @@
 package me.cxj.j3dtiles.model.v1;
 
-import com.sun.istack.internal.Nullable;
+import me.cxj.j3dtiles.impl.v1.ComponentType;
+import me.cxj.j3dtiles.impl.v1.ContainerType;
 import me.cxj.j3dtiles.utils.*;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
-import static me.cxj.j3dtiles.utils.CommonUtils.calcPadding;
+import static me.cxj.j3dtiles.utils.CommonUtils.checkListElements;
+import static me.cxj.j3dtiles.utils.CommonUtils.mismatchedLength;
 
 /**
  * Created by vipcxj on 2018/11/8.
@@ -105,25 +108,7 @@ public class I3dmFeatureTable {
      */
     private Boolean EAST_NORTH_UP;
 
-    private void mismatchedLength(String property) {
-        throw new IllegalArgumentException("Mismatched length of " + property + " array.");
-    }
-
-    private void checkListElements(String property, List list, int componentLength) {
-        int pos = 0;
-        for (Object el : list) {
-            if (componentLength == 1) {
-                if (el == null) {
-                    throw new IllegalArgumentException("Invalid " + property + " at pos: " + pos + ": " + null + ".");
-                }
-            } else {
-                if (el == null || Array.getLength(el) != componentLength) {
-                    throw new IllegalArgumentException("Invalid " + property + " at pos: " + pos + ": " + el + ".");
-                }
-            }
-        }
-    }
-
+    @SuppressWarnings("Duplicates")
     public void validate() {
         if (POSITION == null && POSITION_QUANTIZED == null) {
             throw new IllegalArgumentException("Either POSITION or POSITION_QUANTIZED is needed.");
@@ -507,52 +492,6 @@ public class I3dmFeatureTable {
         EAST_NORTH_UP = value;
     }
 
-    private static List<Float> createFloatList(float[] data, int listSize) {
-        List<Float> list = new ArrayList<>();
-        for (int i = 0; i < listSize; ++i) {
-            list.add(data[i]);
-        }
-        return list;
-    }
-
-    private static List<float[]> createFloat3List(float[] data, int listSize) {
-        List<float[]> list = new ArrayList<>();
-        for (int i = 0; i < listSize; ++i) {
-            float[] el = new float[3];
-            el[0] = data[3 * i];
-            el[1] = data[3 * i + 1];
-            el[2] = data[3 * i + 2];
-            list.add(el);
-        }
-        return list;
-    }
-
-    private static List<Integer> createUnsignedShortList(int[] data, int listSize) {
-        List<Integer> list = new ArrayList<>();
-        for (int i = 0; i < listSize; ++i) {
-            list.add(data[i]);
-        }
-        return list;
-    }
-
-    private static List<Long> createUnsignedIntList(long[] data, int listSize) {
-        List<Long> list = new ArrayList<>();
-        for (int i = 0; i < listSize; ++i) {
-            list.add(data[i]);
-        }
-        return list;
-    }
-
-    private static List<int[]> createUnsignedShortVecList(int[] data, int listSize, int componentLength) {
-        List<int[]> list = new ArrayList<>();
-        for (int i = 0; i < listSize; ++i) {
-            int[] el = new int[componentLength];
-            System.arraycopy(data, componentLength * i, el, 0, componentLength);
-            list.add(el);
-        }
-        return list;
-    }
-
     public static I3dmFeatureTable read(InputStream is, I3dmHeader header, JsonParser parser) throws IOException {
         LittleEndianDataInputStream dis = new LittleEndianDataInputStream(is);
         I3dmFeatureTable table = new I3dmFeatureTable();
@@ -581,91 +520,44 @@ public class I3dmFeatureTable {
 
         float[] floatArrayValue = FeatureUtils.getFloatArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "POSITION", instanceLength * 3);
         if (floatArrayValue != null) {
-            table.setPositionList(createFloat3List(floatArrayValue, instanceLength));
+            table.setPositionList(CommonUtils.createFloat3List(floatArrayValue, instanceLength));
         }
         int[] unsignedShortArrayValue = FeatureUtils.getUnsignedShortArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "POSITION_QUANTIZED", instanceLength * 3);
         if (unsignedShortArrayValue != null) {
-            table.setPositionQuantizedList(createUnsignedShortVecList(unsignedShortArrayValue, instanceLength, 3));
+            table.setPositionQuantizedList(CommonUtils.createUnsignedShortVecList(unsignedShortArrayValue, instanceLength, 3));
         }
         floatArrayValue = FeatureUtils.getFloatArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "NORMAL_UP", instanceLength * 3);
         if (floatArrayValue != null) {
-            table.setNormalUpList(createFloat3List(floatArrayValue, instanceLength));
+            table.setNormalUpList(CommonUtils.createFloat3List(floatArrayValue, instanceLength));
         }
         floatArrayValue = FeatureUtils.getFloatArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "NORMAL_RIGHT", instanceLength * 3);
         if (floatArrayValue != null) {
-            table.setNormalRightList(createFloat3List(floatArrayValue, instanceLength));
+            table.setNormalRightList(CommonUtils.createFloat3List(floatArrayValue, instanceLength));
         }
         unsignedShortArrayValue = FeatureUtils.getUnsignedShortArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "NORMAL_UP_OCT32P", instanceLength * 2);
         if (unsignedShortArrayValue != null) {
-            table.setNormalUpOct32pList(createUnsignedShortVecList(unsignedShortArrayValue, instanceLength, 2));
+            table.setNormalUpOct32pList(CommonUtils.createUnsignedShortVecList(unsignedShortArrayValue, instanceLength, 2));
         }
         unsignedShortArrayValue = FeatureUtils.getUnsignedShortArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "NORMAL_RIGHT_OCT32P", instanceLength * 2);
         if (unsignedShortArrayValue != null) {
-            table.setNormalRightOct32pList(createUnsignedShortVecList(unsignedShortArrayValue, instanceLength, 2));
+            table.setNormalRightOct32pList(CommonUtils.createUnsignedShortVecList(unsignedShortArrayValue, instanceLength, 2));
         }
         floatArrayValue = FeatureUtils.getFloatArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "SCALE", instanceLength);
         if (floatArrayValue != null) {
-            table.setScaleList(createFloatList(floatArrayValue, instanceLength));
+            table.setScaleList(CommonUtils.createFloatList(floatArrayValue, instanceLength));
         }
         floatArrayValue = FeatureUtils.getFloatArrayFeatureValue(jsonHeaderMap, binaryByteBuff, "SCALE_NON_UNIFORM", instanceLength * 3);
         if (floatArrayValue != null) {
-            table.setScaleNonUniformList(createFloat3List(floatArrayValue, instanceLength));
+            table.setScaleNonUniformList(CommonUtils.createFloat3List(floatArrayValue, instanceLength));
         }
         long[] unsignedIntArrayValue = FeatureUtils.getBatchId(jsonHeaderMap, binaryByteBuff, instanceLength);
         if (unsignedIntArrayValue != null) {
-            table.setBatchIdList(createUnsignedIntList(unsignedIntArrayValue, instanceLength));
+            table.setBatchIdList(CommonUtils.createUnsignedIntList(unsignedIntArrayValue, instanceLength));
         }
         return table;
     }
 
-    private Map<String, Object> createReference(int offset, @Nullable String componentType) {
-        Map<String, Object> reference = new HashMap<>();
-        reference.put("byteOffset", offset);
-        if (componentType != null) {
-            reference.put("componentType", componentType);
-        }
-        return reference;
-    }
-
-    private int writeFloatList(LittleEndianDataOutputStream dos, List<Float> list) throws IOException {
-        int writes = 0;
-        for (float el : list) {
-            dos.writeFloat(el);
-            writes += 4;
-        }
-        return writes;
-    }
-
-    private int writeFloatArrayList(LittleEndianDataOutputStream dos, List<float[]> list) throws IOException {
-        int writes = 0;
-        for (float[] el : list) {
-            for (float v : el) {
-                dos.writeFloat(v);
-                writes += 4;
-            }
-        }
-        return writes;
-    }
-
-    private int writeUnsignedShortArrayList(LittleEndianDataOutputStream dos, List<int[]> list) throws IOException {
-        int writes = 0;
-        for (int[] el : list) {
-            for (int i : el) {
-                dos.writeShort(i);
-                writes += 2;
-            }
-        }
-        return writes;
-    }
-
-    private void fillPadding(LittleEndianDataOutputStream dos, int padding) throws IOException {
-        for (int i = 0; i < padding; ++i) {
-            dos.write(0);
-        }
-    }
-
-    public byte[] createBuffer(I3dmHeader header, JsonParser parser) throws IOException {
-        validate();
+    private Map<String, Object> createSimpleHeader() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("INSTANCES_LENGTH", getInstancesLength());
         float[] rtcCenter = getRtcCenter();
@@ -684,150 +576,102 @@ public class I3dmFeatureTable {
         if (eastNorthUp != null) {
             data.put("EAST_NORTH_UP", eastNorthUp);
         }
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()){
-            try (LittleEndianDataOutputStream dos = new LittleEndianDataOutputStream(bos)){
-                int offset = 0;
-                int size = 0;
-                int paddingUnit;
-                int padding = 0;
-                int writes;
-                List<float[]> positionList = getPositionList();
-                if (positionList != null && !positionList.isEmpty()) {
-                    paddingUnit = 4;
-                    data.put("POSITION", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeFloatArrayList(dos, positionList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<int[]> positionQuantizedList = getPositionQuantizedList();
-                if (positionQuantizedList != null && !positionQuantizedList.isEmpty()) {
-                    paddingUnit = 2;
-                    data.put("POSITION_QUANTIZED", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeUnsignedShortArrayList(dos, positionQuantizedList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<float[]> normalUpList = getNormalUpList();
-                if (normalUpList != null && !normalUpList.isEmpty()) {
-                    paddingUnit = 4;
-                    data.put("NORMAL_UP", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeFloatArrayList(dos, normalUpList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<float[]> normalRightList = getNormalRightList();
-                if (normalRightList != null && !normalRightList.isEmpty()) {
-                    paddingUnit = 4;
-                    data.put("NORMAL_RIGHT", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeFloatArrayList(dos, normalRightList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<int[]> normalUpOct32pList = getNormalUpOct32pList();
-                if (normalUpOct32pList != null && !normalUpOct32pList.isEmpty()) {
-                    paddingUnit = 2;
-                    data.put("NORMAL_UP_OCT32P", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeUnsignedShortArrayList(dos, normalUpOct32pList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<int[]> normalRightOct32pList = getNormalRightOct32pList();
-                if (normalRightOct32pList != null && !normalRightOct32pList.isEmpty()) {
-                    paddingUnit = 2;
-                    data.put("NORMAL_RIGHT_OCT32P", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeUnsignedShortArrayList(dos, normalRightOct32pList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<Float> scaleList = getScaleList();
-                if (scaleList != null && !scaleList.isEmpty()) {
-                    paddingUnit = 4;
-                    data.put("SCALE", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeFloatList(dos, scaleList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<float[]> scaleNonUniformList = getScaleNonUniformList();
-                if (scaleNonUniformList != null && !scaleNonUniformList.isEmpty()) {
-                    paddingUnit = 4;
-                    data.put("SCALE_NON_UNIFORM", createReference(offset, null));
-                    fillPadding(dos, padding);
-                    writes = writeFloatArrayList(dos, scaleNonUniformList);
-                    offset += writes;
-                    size = offset;
-                    padding = calcPadding(offset, paddingUnit);
-                    offset += padding;
-                }
-                List<Long> batchIdList = getBatchIdList();
-                if (batchIdList != null && !batchIdList.isEmpty()) {
-                    Long maxValue = batchIdList.stream().max(Long::compareTo).orElse(null);
-                    fillPadding(dos, padding);
-                    if (maxValue > 0xFFFF) {
-                        // paddingUnit = 4;
-                        data.put("BATCH_ID", createReference(offset, "UNSIGNED_INT"));
-                        writes = 0;
-                        for (Long aLong : batchIdList) {
-                            dos.writeInt((int) (long) aLong);
-                            writes += 4;
-                        }
-                    } else if (maxValue > 0xFF) {
-                        // paddingUnit = 2;
-                        data.put("BATCH_ID", createReference(offset, "UNSIGNED_SHORT"));
-                        writes = 0;
-                        for (Long aLong : batchIdList) {
-                            dos.writeShort((int) (long) aLong);
-                            writes += 2;
-                        }
-                    } else {
-                        // paddingUnit = 1;
-                        data.put("BATCH_ID", createReference(offset, "UNSIGNED_BYTE"));
-                        writes = 0;
-                        for (Long aLong : batchIdList) {
-                            dos.write((int) (long) aLong);
-                            writes += 1;
-                        }
-                    }
-                    offset += writes;
-                    size = offset;
-                    // padding = calcPadding(offset, paddingUnit);
-                    // offset += padding;
-                }
-                padding = calcPadding(size, 8);
-                fillPadding(dos, padding);
-                byte[] jsonBytes = parser.toJsonString(data).getBytes(StandardCharsets.UTF_8);
-                int jsonPadding = calcPadding(jsonBytes.length, 8);
-                header.setFeatureTableJSONByteLength(jsonBytes.length + jsonPadding);
-                byte[] binaryBytes = bos.toByteArray();
-                header.setFeatureTableBinaryByteLength(binaryBytes.length);
-                byte[] out = new byte[jsonBytes.length + jsonPadding + binaryBytes.length];
-                System.arraycopy(jsonBytes, 0, out, 0, jsonBytes.length);
-                for (int i = 0; i < jsonPadding; ++i) {
-                    out[jsonBytes.length + i] = 0x20;
-                }
-                System.arraycopy(binaryBytes, 0, out, jsonBytes.length + jsonPadding, binaryBytes.length);
-                return out;
+        return data;
+    }
+
+    public byte[] createBuffer(I3dmHeader header, JsonParser parser) throws IOException {
+        validate();
+        Map<String, Object> data = createSimpleHeader();
+        try (BinaryBodyHelper helper = new BinaryBodyHelper(data)){
+            List<float[]> positionList = getPositionList();
+            if (positionList != null && !positionList.isEmpty()) {
+                helper.writeData("POSITION", positionList, ComponentType.FLOAT, ContainerType.VEC3, true);
             }
+            List<int[]> positionQuantizedList = getPositionQuantizedList();
+            if (positionQuantizedList != null && !positionQuantizedList.isEmpty()) {
+                helper.writeData("POSITION_QUANTIZED", positionQuantizedList, ComponentType.UNSIGNED_SHORT, ContainerType.VEC3, true);
+            }
+            List<float[]> normalUpList = getNormalUpList();
+            if (normalUpList != null && !normalUpList.isEmpty()) {
+                helper.writeData("NORMAL_UP", normalUpList, ComponentType.FLOAT, ContainerType.VEC3, true);
+            }
+            List<float[]> normalRightList = getNormalRightList();
+            if (normalRightList != null && !normalRightList.isEmpty()) {
+                helper.writeData("NORMAL_RIGHT", normalRightList, ComponentType.FLOAT, ContainerType.VEC3, true);
+            }
+            List<int[]> normalUpOct32pList = getNormalUpOct32pList();
+            if (normalUpOct32pList != null && !normalUpOct32pList.isEmpty()) {
+                helper.writeData("NORMAL_UP_OCT32P", normalUpOct32pList, ComponentType.UNSIGNED_SHORT, ContainerType.VEC2, true);
+            }
+            List<int[]> normalRightOct32pList = getNormalRightOct32pList();
+            if (normalRightOct32pList != null && !normalRightOct32pList.isEmpty()) {
+                helper.writeData("NORMAL_RIGHT_OCT32P", normalRightOct32pList, ComponentType.UNSIGNED_SHORT, ContainerType.VEC2, true);
+            }
+            List<Float> scaleList = getScaleList();
+            if (scaleList != null && !scaleList.isEmpty()) {
+                helper.writeData("SCALE", scaleList, ComponentType.FLOAT, ContainerType.SCALAR, true);
+            }
+            List<float[]> scaleNonUniformList = getScaleNonUniformList();
+            if (scaleNonUniformList != null && !scaleNonUniformList.isEmpty()) {
+                helper.writeData("SCALE_NON_UNIFORM", scaleNonUniformList, ComponentType.FLOAT, ContainerType.VEC3, true);
+            }
+            List<Long> batchIdList = getBatchIdList();
+            if (batchIdList != null && !batchIdList.isEmpty()) {
+                helper.writeBatchId(batchIdList);
+            }
+            helper.finished();
+            byte[] jsonBytes = parser.toJsonString(data).getBytes(StandardCharsets.UTF_8);
+            jsonBytes = CommonUtils.createPaddingBytes(jsonBytes, header.getHeaderLength() + jsonBytes.length, 8, (byte) 0x20);
+            header.setFeatureTableJSONByteLength(jsonBytes.length);
+            byte[] binaryBytes = helper.toByteArray();
+            header.setFeatureTableBinaryByteLength(binaryBytes.length);
+            byte[] out = new byte[jsonBytes.length + binaryBytes.length];
+            System.arraycopy(jsonBytes, 0, out, 0, jsonBytes.length);
+            System.arraycopy(binaryBytes, 0, out, jsonBytes.length, binaryBytes.length);
+            return out;
         }
+    }
+
+    public int calcSize(I3dmHeader header, JsonParser parser) {
+        Map<String, Object> data = createSimpleHeader();
+        BinaryBodySizeHelper helper = new BinaryBodySizeHelper(data);
+        List<float[]> positionList = getPositionList();
+        if (positionList != null && !positionList.isEmpty()) {
+            helper.addProperty("POSITION", positionList, ComponentType.FLOAT, ContainerType.VEC3, true);
+        }
+        List<int[]> positionQuantizedList = getPositionQuantizedList();
+        if (positionQuantizedList != null && !positionQuantizedList.isEmpty()) {
+            helper.addProperty("POSITION_QUANTIZED", positionQuantizedList, ComponentType.UNSIGNED_SHORT, ContainerType.VEC3, true);
+        }
+        List<float[]> normalUpList = getNormalUpList();
+        if (normalUpList != null && !normalUpList.isEmpty()) {
+            helper.addProperty("NORMAL_UP", normalUpList, ComponentType.FLOAT, ContainerType.VEC3, true);
+        }
+        List<float[]> normalRightList = getNormalRightList();
+        if (normalRightList != null && !normalRightList.isEmpty()) {
+            helper.addProperty("NORMAL_RIGHT", normalRightList, ComponentType.FLOAT, ContainerType.VEC3, true);
+        }
+        List<int[]> normalUpOct32pList = getNormalUpOct32pList();
+        if (normalUpOct32pList != null && !normalUpOct32pList.isEmpty()) {
+            helper.addProperty("NORMAL_UP_OCT32P", normalUpOct32pList, ComponentType.UNSIGNED_SHORT, ContainerType.VEC2, true);
+        }
+        List<int[]> normalRightOct32pList = getNormalRightOct32pList();
+        if (normalRightOct32pList != null && !normalRightOct32pList.isEmpty()) {
+            helper.addProperty("NORMAL_RIGHT_OCT32P", normalRightOct32pList, ComponentType.UNSIGNED_SHORT, ContainerType.VEC2, true);
+        }
+        List<Float> scaleList = getScaleList();
+        if (scaleList != null && !scaleList.isEmpty()) {
+            helper.addProperty("SCALE", scaleList, ComponentType.FLOAT, ContainerType.SCALAR, true);
+        }
+        List<float[]> scaleNonUniformList = getScaleNonUniformList();
+        if (scaleNonUniformList != null && !scaleNonUniformList.isEmpty()) {
+            helper.addProperty("SCALE_NON_UNIFORM", scaleNonUniformList, ComponentType.FLOAT, ContainerType.VEC3, true);
+        }
+        List<Long> batchIdList = getBatchIdList();
+        if (batchIdList != null && !batchIdList.isEmpty()) {
+            helper.addBatchId(batchIdList);
+        }
+        helper.finished();
+        return helper.calcHeaderSize(header.getHeaderLength(), parser) + helper.getSize();
     }
 }

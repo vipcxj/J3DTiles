@@ -11,7 +11,7 @@ import java.io.*;
 /**
  * Created by vipcxj on 2018/10/30.
  */
-public class B3dm {
+public class B3dm implements TileModel {
 
     private B3dmHeader header;
     private B3dmFeatureTable featureTable;
@@ -28,22 +28,28 @@ public class B3dm {
         return instance;
     }
 
+    @Override
     @SuppressWarnings("Duplicates")
     public void write(OutputStream os, JsonParser parser) throws IOException {
         byte[] featureTableBuffer = featureTable.createBuffer(header, parser);
         byte[] batchTableBuffer = batchTable.createBuffer(header, parser, featureTable.getBatchLength());
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()){
-            new GltfModelWriter().writeBinary(gltf, bos);
-            byte[] gltfBuffer = bos.toByteArray();
-            int gltfPadding = CommonUtils.calcPadding(gltfBuffer.length, 8);
-            header.setByteLength(featureTableBuffer.length + batchTableBuffer.length + gltfBuffer.length + gltfPadding);
-            header.write(os);
-            os.write(featureTableBuffer);
-            os.write(batchTableBuffer);
-            os.write(gltfBuffer);
-            for (int i = 0; i < gltfPadding; ++i) {
-                os.write(0);
-            }
-        }
+        byte[] gltfBuffer = CommonUtils.getPadGltf(gltf, 8);
+        header.setByteLength(getHeader().getHeaderLength() + featureTableBuffer.length + batchTableBuffer.length + gltfBuffer.length);
+        header.write(os);
+        os.write(featureTableBuffer);
+        os.write(batchTableBuffer);
+        os.write(gltfBuffer);
+    }
+
+    public long calcSize(JsonParser parser) {
+        return header.getHeaderLength()
+                + featureTable.calcSize(header, parser)
+                + batchTable.calcSize(header, parser, featureTable.getBatchLength())
+                + CommonUtils.calcGltfSize(gltf, 8);
+    }
+
+    @Override
+    public B3dmHeader getHeader() {
+        return header;
     }
 }

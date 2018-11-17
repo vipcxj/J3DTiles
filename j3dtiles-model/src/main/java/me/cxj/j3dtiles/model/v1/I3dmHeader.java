@@ -13,8 +13,7 @@ import java.util.Arrays;
  */
 public class I3dmHeader extends BatchHeader {
 
-    private final byte magic[] = { 0x69, 0x33, 0x64, 0x6d };
-    private int byteLength;
+    public static final byte magic[] = { 0x69, 0x33, 0x64, 0x6d };
     private int featureTableJSONByteLength;
     private int featureTableBinaryByteLength;
     private int gltfFormat;
@@ -27,12 +26,9 @@ public class I3dmHeader extends BatchHeader {
         return 1;
     }
 
-    public int getByteLength() {
-        return byteLength;
-    }
-
-    public void setByteLength(int byteLength) {
-        this.byteLength = byteLength;
+    @Override
+    public int getHeaderLength() {
+        return 32;
     }
 
     public int getFeatureTableJSONByteLength() {
@@ -75,7 +71,7 @@ public class I3dmHeader extends BatchHeader {
         if (!hasReadVersion) {
             int version = dataInputStream.readInt();
             if (version != header.getVersion()) {
-                throw new IllegalArgumentException("Invalid input stream. Not a valid b2dm stream. Mismatch version. Expect 1 but " + version + ".");
+                throw new IllegalArgumentException("Invalid input stream. Not a valid i3dm stream. Mismatch version. Expect 1 but " + version + ".");
             }
         }
         header.setByteLength(dataInputStream.readInt());
@@ -91,9 +87,9 @@ public class I3dmHeader extends BatchHeader {
         LittleEndianDataOutputStream dos = new LittleEndianDataOutputStream(os);
         dos.write(magic);
         dos.writeInt(getVersion());
-        dos.writeInt(byteLength);
-        dos.writeInt(featureTableJSONByteLength);
-        dos.writeInt(featureTableBinaryByteLength);
+        dos.writeInt(getByteLength());
+        dos.writeInt(getFeatureTableJSONByteLength());
+        dos.writeInt(getFeatureTableBinaryByteLength());
         dos.writeInt(getBatchTableJSONByteLength());
         dos.writeInt(getBatchTableBinaryByteLength());
         dos.writeInt(gltfFormat);

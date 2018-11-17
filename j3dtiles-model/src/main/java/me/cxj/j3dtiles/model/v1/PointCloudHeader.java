@@ -13,8 +13,7 @@ import java.util.Arrays;
  */
 public class PointCloudHeader extends BatchHeader {
 
-    private final byte magic[] = { 0x70, 0x6e, 0x74, 0x73 };
-    private int byteLength;
+    public static final byte magic[] = { 0x70, 0x6e, 0x74, 0x73 };
     private int featureTableJSONByteLength;
     private int featureTableBinaryByteLength;
 
@@ -26,12 +25,9 @@ public class PointCloudHeader extends BatchHeader {
         return 1;
     }
 
-    public int getByteLength() {
-        return byteLength;
-    }
-
-    public void setByteLength(int byteLength) {
-        this.byteLength = byteLength;
+    @Override
+    public int getHeaderLength() {
+        return 28;
     }
 
     public int getFeatureTableJSONByteLength() {
@@ -82,9 +78,9 @@ public class PointCloudHeader extends BatchHeader {
         LittleEndianDataOutputStream dos = new LittleEndianDataOutputStream(os);
         dos.write(magic);
         dos.writeInt(getVersion());
-        dos.writeInt(byteLength);
-        dos.writeInt(featureTableJSONByteLength);
-        dos.writeInt(featureTableBinaryByteLength);
+        dos.writeInt(getByteLength());
+        dos.writeInt(getBatchTableJSONByteLength());
+        dos.writeInt(getBatchTableBinaryByteLength());
         dos.writeInt(getBatchTableJSONByteLength());
         dos.writeInt(getBatchTableBinaryByteLength());
     }

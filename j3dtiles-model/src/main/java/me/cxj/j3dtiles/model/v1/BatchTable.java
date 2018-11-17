@@ -1,15 +1,12 @@
 package me.cxj.j3dtiles.model.v1;
 
-import me.cxj.j3dtiles.impl.v1.BatchTableBinaryBodyReference;
+import me.cxj.j3dtiles.impl.v1.BinaryBodyReference;
 import me.cxj.j3dtiles.utils.*;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by vipcxj on 2018/10/30.
@@ -17,10 +14,10 @@ import java.util.Map;
 public class BatchTable {
 
     private Map<String, List<?>> data;
-    private Map<String, BatchTableBinaryBodyReference> references;
+    private Map<String, BinaryBodyReference> references;
 
-    private static Map<String, BatchTableBinaryBodyReference> collectReferences(Map<String, Object> jsonHeader) {
-        Map<String, BatchTableBinaryBodyReference> references = new LinkedHashMap<>();
+    private static Map<String, BinaryBodyReference> collectReferences(Map<String, Object> jsonHeader) {
+        Map<String, BinaryBodyReference> references = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : jsonHeader.entrySet()) {
             if (entry.getValue() instanceof Map) {
                 references.put(entry.getKey(), FeatureUtils.toReference(entry.getValue()));
@@ -45,7 +42,7 @@ public class BatchTable {
         table.references = collectReferences(jsonHeader);
         table.data = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : jsonHeader.entrySet()) {
-            BatchTableBinaryBodyReference reference = table.references.get(entry.getKey());
+            BinaryBodyReference reference = table.references.get(entry.getKey());
             if (reference != null) {
                 table.data.put(entry.getKey(), FeatureUtils.getBatchTableValues(reference, binaryByteBuff, entry.getKey(), batchLength));
             } else if (entry.getValue() instanceof List) {
@@ -57,142 +54,47 @@ public class BatchTable {
         return table;
     }
 
-    public byte[] createBuffer(BatchHeader header, JsonParser parser, int batchLength) {
+    public byte[] createBuffer(BatchHeader header, JsonParser parser, int batchLength) throws IOException {
         Map<String, Object> outJsonHeader = new HashMap<>();
-        int binarySize = 0;
-        int offset = 0;
+        try (BinaryBodyHelper helper = new BinaryBodyHelper(outJsonHeader)){
+            for (Map.Entry<String, List<?>> entry : data.entrySet()) {
+                BinaryBodyReference reference = references.get(entry.getKey());
+                if (reference == null) {
+                    outJsonHeader.put(entry.getKey(), entry.getValue());
+                } else {
+                    helper.writeData(entry.getKey(), entry.getValue(), reference.getComponentType(), reference.getType(), false, true);
+                }
+            }
+            helper.finished();
+            String jsonHeader = parser.toJsonString(outJsonHeader);
+            byte[] jsonHeaderBytes = jsonHeader.getBytes(StandardCharsets.UTF_8);
+            int jsonSize = jsonHeaderBytes.length;
+            int jsonPadding = CommonUtils.calcPadding(jsonSize, 8);
+            byte[] binaryBody = helper.toByteArray();
+            int buffSize = jsonSize + jsonPadding + binaryBody.length;
+            byte[] out = new byte[buffSize];
+            System.arraycopy(jsonHeaderBytes, 0, out, 0, jsonSize);
+            Arrays.fill(out, jsonSize, jsonSize + jsonPadding, (byte) 0x20);
+            System.arraycopy(binaryBody, 0, out, jsonSize + jsonPadding, binaryBody.length);
+            header.setBatchTableJSONByteLength(jsonSize + jsonPadding);
+            header.setBatchTableBinaryByteLength(binaryBody.length);
+            return out;
+        }
+    }
+
+    public int calcSize(BatchHeader header, JsonParser parser, int batchLength) {
+        Map<String, Object> outJsonHeader = new HashMap<>();
+        BinaryBodySizeHelper helper = new BinaryBodySizeHelper(outJsonHeader);
         for (Map.Entry<String, List<?>> entry : data.entrySet()) {
-            BatchTableBinaryBodyReference reference = references.get(entry.getKey());
+            BinaryBodyReference reference = references.get(entry.getKey());
             if (reference == null) {
                 outJsonHeader.put(entry.getKey(), entry.getValue());
             } else {
-                reference.setByteOffset(offset);
-                int dataLen = reference.getComponentType().getSize() * reference.getType().getSize() * batchLength;
-                int padding = (offset + dataLen) % reference.getComponentType().getSize();
-                if (padding != 0) {
-                    padding = reference.getComponentType().getSize() - padding;
-                }
-                binarySize = offset + dataLen;
-                offset += dataLen + padding;
-                outJsonHeader.put(entry.getKey(), reference);
+                helper.addProperty(entry.getKey(), entry.getValue(), reference.getComponentType(), reference.getType(), false);
             }
         }
-        int binaryPadding = binarySize % 8;
-        if (binaryPadding != 0) {
-            binaryPadding = 8 - binaryPadding;
-        }
-        String jsonHeader = parser.toJsonString(outJsonHeader);
-        byte[] jsonHeaderBytes = jsonHeader.getBytes(StandardCharsets.UTF_8);
-        int jsonSize = jsonHeaderBytes.length;
-        int jsonPadding = jsonSize % 8;
-        if (jsonPadding != 0) {
-            jsonPadding = 8 - jsonPadding;
-        }
-        int buffSize = jsonSize + jsonPadding + binarySize + binaryPadding;
-        byte[] out = new byte[buffSize];
-        System.arraycopy(jsonHeaderBytes, 0, out, 0, jsonSize);
-        for (int i = 0; i < jsonPadding; ++i) {
-            out[jsonSize + i] = 0x20;
-        }
-        for (Map.Entry<String, Object> entry : outJsonHeader.entrySet()) {
-            Object value = entry.getValue();
-            if (value instanceof BatchTableBinaryBodyReference) {
-                BatchTableBinaryBodyReference reference = (BatchTableBinaryBodyReference) value;
-                List realData = data.get(entry.getKey());
-                int containerSize = reference.getType().getSize();
-                int unitSize = reference.getComponentType().getSize() * containerSize;
-                int baseOffset = jsonSize + jsonPadding + reference.getByteOffset();
-                for (int i = 0; i < realData.size(); ++i) {
-                    Object el = realData.get(i);
-                    switch (reference.getComponentType()) {
-                        case BYTE:
-                            if (containerSize == 1) {
-                                out[baseOffset + i * unitSize] = TypeUtils.toByte(el);
-                            } else {
-                                StreamUtils.byteArrayCopyToByteArrayLE(out, baseOffset + i * unitSize, (byte[]) el);
-                            }
-                            break;
-                        case UNSIGNED_BYTE:
-                            if (containerSize == 1) {
-                                out[baseOffset + i * unitSize] = (byte) (int) el;
-                            } else {
-                                StreamUtils.unsignedByteArrayCopyToByteArrayLE(out, baseOffset + i * unitSize, (int[]) el);
-                            }
-                            break;
-                        case SHORT:
-                            if (containerSize == 1) {
-                                short v = (short) el;
-                                out[baseOffset + i * unitSize] = (byte) (0xFF & v);
-                                out[baseOffset + i * unitSize + 1] = (byte) (0xFF & (v >> 8));
-                            } else {
-                                StreamUtils.shortArrayCopyToByteArrayLE(out, baseOffset, (short[]) el);
-                            }
-                            break;
-                        case UNSIGNED_SHORT:
-                            if (containerSize == 1) {
-                                int v = (int) el;
-                                out[baseOffset + i * unitSize] = (byte) (0xFF & v);
-                                out[baseOffset + i * unitSize + 1] = (byte) (0xFF & (v >> 8));
-                            } else {
-                                StreamUtils.unsignedShortArrayCopyToByteArrayLE(out, baseOffset, (int[]) el);
-                            }
-                            break;
-                        case INT:
-                            if (containerSize == 1) {
-                                int v = (int) el;
-                                out[baseOffset + i * unitSize] = (byte) (0xFF & v);
-                                out[baseOffset + i * unitSize + 1] = (byte) (0xFF & (v >> 8));
-                                out[baseOffset + i * unitSize + 2] = (byte) (0xFF & (v >> 16));
-                                out[baseOffset + i * unitSize + 3] = (byte) (0xFF & (v >> 24));
-                            } else {
-                                StreamUtils.intArrayCopyToByteArrayLE(out, baseOffset, (int[]) el);
-                            }
-                            break;
-                        case UNSIGNED_INT:
-                            if (containerSize == 1) {
-                                long v = (long) el;
-                                out[baseOffset + i * unitSize] = (byte) (0xFF & v);
-                                out[baseOffset + i * unitSize + 1] = (byte) (0xFF & (v >> 8));
-                                out[baseOffset + i * unitSize + 2] = (byte) (0xFF & (v >> 16));
-                                out[baseOffset + i * unitSize + 3] = (byte) (0xFF & (v >> 24));
-                            } else {
-                                StreamUtils.unsignedIntArrayCopyToByteArrayLE(out, baseOffset, (long[]) el);
-                            }
-                            break;
-                        case FLOAT:
-                            if (containerSize == 1) {
-                                int v = Float.floatToIntBits((float) el);
-                                out[baseOffset + i * unitSize] = (byte) (0xFF & v);
-                                out[baseOffset + i * unitSize + 1] = (byte) (0xFF & (v >> 8));
-                                out[baseOffset + i * unitSize + 2] = (byte) (0xFF & (v >> 16));
-                                out[baseOffset + i * unitSize + 3] = (byte) (0xFF & (v >> 24));
-                            } else {
-                                StreamUtils.floatArrayCopyToByteArrayLE(out, baseOffset, (float[]) el);
-                            }
-                            break;
-                        case DOUBLE:
-                            if (containerSize == 1) {
-                                long v = Double.doubleToLongBits((double) el);
-                                out[baseOffset + i * unitSize] = (byte) (0xFF & v);
-                                out[baseOffset + i * unitSize + 1] = (byte) (0xFF & (v >> 8));
-                                out[baseOffset + i * unitSize + 2] = (byte) (0xFF & (v >> 16));
-                                out[baseOffset + i * unitSize + 3] = (byte) (0xFF & (v >> 24));
-                                out[baseOffset + i * unitSize + 4] = (byte) (0xFF & (v >> 32));
-                                out[baseOffset + i * unitSize + 5] = (byte) (0xFF & (v >> 40));
-                                out[baseOffset + i * unitSize + 6] = (byte) (0xFF & (v >> 48));
-                                out[baseOffset + i * unitSize + 7] = (byte) (0xFF & (v >> 56));
-                            } else {
-                                StreamUtils.doubleArrayCopyToByteArrayLE(out, baseOffset, (double[]) el);
-                            }
-                            break;
-
-                    }
-                }
-            }
-        }
-        header.setBatchTableJSONByteLength(jsonSize + jsonPadding);
-        header.setBatchTableBinaryByteLength(binarySize + binaryPadding);
-        return out;
+        helper.finished();
+        return helper.calcHeaderSize(0, parser) + helper.getSize();
     }
 
     public Object getProperty(String property, int batchId) {

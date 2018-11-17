@@ -3,13 +3,13 @@ package me.cxj.j3dtiles.impl.v1;
 /**
  * Created by vipcxj on 2018/10/31.
  */
-public enum BatchTableComponentType {
+public enum ContainerType {
 
-    BYTE(1), UNSIGNED_BYTE(1), SHORT(2), UNSIGNED_SHORT(2), INT(4), UNSIGNED_INT(4), FLOAT(4), DOUBLE(8);
+    SCALAR(1), VEC2(2), VEC3(3), VEC4(4);
 
     private final int size;
 
-    BatchTableComponentType(int size) {
+    ContainerType(int size) {
         this.size = size;
     }
 
@@ -18,7 +18,7 @@ public enum BatchTableComponentType {
     }
 
     public static boolean is(String value) {
-        for (BatchTableComponentType type : values()) {
+        for (ContainerType type : values()) {
             if (type.name().equals(value)) {
                 return true;
             }
@@ -29,7 +29,7 @@ public enum BatchTableComponentType {
     public static String allValues() {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (BatchTableComponentType type : values()) {
+        for (ContainerType type : values()) {
             if (first) {
                 first = false;
                 sb.append(type.name());

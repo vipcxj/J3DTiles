@@ -7,7 +7,7 @@ import java.io.Serializable;
  * of the batch table where the property values are stored if not
  * defined directly in the JSON.
  */
-public class BatchTableBinaryBodyReference implements Serializable {
+public class BinaryBodyReference implements Serializable {
 
     /**
      * The offset into the buffer in bytes.
@@ -19,18 +19,18 @@ public class BatchTableBinaryBodyReference implements Serializable {
      * The data type of components in the property.
      * (required)
      */
-    private BatchTableComponentType componentType;
+    private ComponentType componentType;
 
     /**
      * Specifies if the property is a scalar or vector.
      * (required)
      */
-    private BatchTableContainerType type;
+    private ContainerType type;
 
-    public BatchTableBinaryBodyReference() {
+    public BinaryBodyReference() {
     }
 
-    public BatchTableBinaryBodyReference(int byteOffset, BatchTableComponentType componentType, BatchTableContainerType type) {
+    public BinaryBodyReference(int byteOffset, ComponentType componentType, ContainerType type) {
         this.byteOffset = byteOffset;
         this.componentType = componentType;
         this.type = type;
@@ -59,7 +59,7 @@ public class BatchTableBinaryBodyReference implements Serializable {
      * (required)
      * @return The data type
      */
-    public BatchTableComponentType getComponentType() {
+    public ComponentType getComponentType() {
         return componentType;
     }
 
@@ -68,7 +68,7 @@ public class BatchTableBinaryBodyReference implements Serializable {
      * (required)
      * @param componentType The data type
      */
-    public void setComponentType(BatchTableComponentType componentType) {
+    public void setComponentType(ComponentType componentType) {
         this.componentType = componentType;
     }
 
@@ -77,7 +77,7 @@ public class BatchTableBinaryBodyReference implements Serializable {
      * (required)
      * @return the container type
      */
-    public BatchTableContainerType getType() {
+    public ContainerType getType() {
         return type;
     }
 
@@ -86,16 +86,16 @@ public class BatchTableBinaryBodyReference implements Serializable {
      * (required)
      * @param type the container type
      */
-    public void setType(BatchTableContainerType type) {
+    public void setType(ContainerType type) {
         this.type = type;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof BatchTableBinaryBodyReference)) return false;
+        if (!(o instanceof BinaryBodyReference)) return false;
 
-        BatchTableBinaryBodyReference that = (BatchTableBinaryBodyReference) o;
+        BinaryBodyReference that = (BinaryBodyReference) o;
 
         if (getByteOffset() != that.getByteOffset()) return false;
         if (getComponentType() != that.getComponentType()) return false;

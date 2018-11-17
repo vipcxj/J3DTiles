@@ -1,8 +1,8 @@
 package me.cxj.j3dtiles.utils;
 
-import me.cxj.j3dtiles.impl.v1.BatchTableBinaryBodyReference;
-import me.cxj.j3dtiles.impl.v1.BatchTableComponentType;
-import me.cxj.j3dtiles.impl.v1.BatchTableContainerType;
+import me.cxj.j3dtiles.impl.v1.BinaryBodyReference;
+import me.cxj.j3dtiles.impl.v1.ComponentType;
+import me.cxj.j3dtiles.impl.v1.ContainerType;
 
 import java.util.Arrays;
 import java.util.List;
@@ -66,6 +66,25 @@ public class FeatureUtils {
             }
         }
         throw new IllegalArgumentException("Invalid BATCH_ID. It must be a BinaryBodyReference.");
+    }
+
+    public static byte[] getUnsignedByteArrayFeatureValue(Map<String, Object> jsonHeader, byte[] binaryBuffer, String propName, int length) {
+        Object objValue = jsonHeader.get(propName);
+        if (objValue == null) {
+            return null;
+        }
+        if (objValue instanceof Map) {
+            Map mapValue = (Map) objValue;
+            Object objByteOffset = mapValue.get(PROP_BYTE_OFFSET);
+            if (objByteOffset == null) {
+                throw new IllegalArgumentException("Invalid BinaryBodyReference struct, no byteOffset found.");
+            }
+            int offset = TypeUtils.toInteger(objByteOffset);
+            return Arrays.copyOfRange(binaryBuffer, offset, offset + length);
+        } else if (objValue instanceof List) {
+            return TypeUtils.toUnsignedByteArray(objValue, length);
+        }
+        throw new IllegalArgumentException("Property " + propName + " is not a unsigned byte array value.");
     }
 
     public static short[] getShortArrayFeatureValue(Map<String, Object> jsonHeader, byte[] binaryBuffer, String propName, int length) {
@@ -259,6 +278,32 @@ public class FeatureUtils {
         throw new IllegalArgumentException("Property " + propName + " is not a float array value.");
     }
 
+    public static BinaryBodyReference getBinaryBodyReference(Map<String, Object> jsonHeader, String propName) {
+        Object objValue = jsonHeader.get(propName);
+        if (objValue == null) {
+            return null;
+        }
+        if (objValue instanceof Map) {
+            BinaryBodyReference reference = new BinaryBodyReference();
+            Map mapValue = (Map) objValue;
+            Object objByteOffset = mapValue.get(PROP_BYTE_OFFSET);
+            if (objByteOffset == null) {
+                throw new IllegalArgumentException("Invalid BinaryBodyReference struct, no byteOffset found.");
+            }
+            reference.setByteOffset(TypeUtils.toInteger(objByteOffset));
+            Object objComponentType = mapValue.get(PROP_COMPONENT_TYPE);
+            if (objComponentType != null) {
+                reference.setComponentType(ComponentType.valueOf(objComponentType.toString()));
+            }
+            Object objContainerType = mapValue.get(PROP_TYPE);
+            if (objContainerType != null) {
+                reference.setType(ContainerType.valueOf(objContainerType.toString()));
+            }
+            return reference;
+        }
+        throw new IllegalArgumentException("Property " + propName + " is not a binary body reference value.");
+    }
+
     public static Object getBatchTableValue(Map<String, Object> jsonHeader, byte[] binaryBuffer, String propName, int batchId) {
         Object objValue = jsonHeader.get(propName);
         if (objValue == null) {
@@ -276,22 +321,22 @@ public class FeatureUtils {
                 throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, no componentType found, or componentType is not a string.");
             }
             String strComponentType = (String) objComponentType;
-            BatchTableComponentType componentType;
+            ComponentType componentType;
             try {
-                componentType = BatchTableComponentType.valueOf(strComponentType);
+                componentType = ComponentType.valueOf(strComponentType);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid componentType: " + strComponentType + ". Possible values: " + BatchTableComponentType.allValues() + ".", e);
+                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid componentType: " + strComponentType + ". Possible values: " + ComponentType.allValues() + ".", e);
             }
             Object objElementType = mapValue.get(PROP_TYPE);
             if (!(objElementType instanceof String)) {
                 throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, no type found, or type is not a string.");
             }
             String strElementType = (String) objElementType;
-            BatchTableContainerType containerType;
+            ContainerType containerType;
             try {
-                containerType = BatchTableContainerType.valueOf(strElementType);
+                containerType = ContainerType.valueOf(strElementType);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid type: " + strElementType + ". Possible values: " + BatchTableContainerType.allValues() + ".", e);
+                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid type: " + strElementType + ". Possible values: " + ContainerType.allValues() + ".", e);
             }
             int containerSize = containerType.getSize();
             int byteMask = 0xff;
@@ -383,9 +428,9 @@ public class FeatureUtils {
         throw new IllegalArgumentException("Unparseable batch table property: " + propName + ".");
     }
 
-    public static List<?> getBatchTableValues(BatchTableBinaryBodyReference reference, byte[] binaryBuffer, String propName, int batchLength) {
-        BatchTableComponentType componentType = reference.getComponentType();
-        BatchTableContainerType containerType = reference.getType();
+    public static List<?> getBatchTableValues(BinaryBodyReference reference, byte[] binaryBuffer, String propName, int batchLength) {
+        ComponentType componentType = reference.getComponentType();
+        ContainerType containerType = reference.getType();
         int offset = reference.getByteOffset();
         int containerSize = containerType.getSize();
         int byteMask = 0xff;
@@ -519,9 +564,9 @@ public class FeatureUtils {
         }
     }
 
-    public static BatchTableBinaryBodyReference toReference(Object value) {
-        if (value instanceof BatchTableBinaryBodyReference) {
-            return (BatchTableBinaryBodyReference) value;
+    public static BinaryBodyReference toReference(Object value) {
+        if (value instanceof BinaryBodyReference) {
+            return (BinaryBodyReference) value;
         }
         if (value instanceof Map) {
             Map mapValue = (Map) value;
@@ -535,24 +580,24 @@ public class FeatureUtils {
                 throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, no componentType found, or componentType is not a string.");
             }
             String strComponentType = (String) objComponentType;
-            BatchTableComponentType componentType;
+            ComponentType componentType;
             try {
-                componentType = BatchTableComponentType.valueOf(strComponentType);
+                componentType = ComponentType.valueOf(strComponentType);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid componentType: " + strComponentType + ". Possible values: " + BatchTableComponentType.allValues() + ".", e);
+                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid componentType: " + strComponentType + ". Possible values: " + ComponentType.allValues() + ".", e);
             }
             Object objElementType = mapValue.get(PROP_TYPE);
             if (!(objElementType instanceof String)) {
                 throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, no type found, or type is not a string.");
             }
             String strElementType = (String) objElementType;
-            BatchTableContainerType containerType;
+            ContainerType containerType;
             try {
-                containerType = BatchTableContainerType.valueOf(strElementType);
+                containerType = ContainerType.valueOf(strElementType);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid type: " + strElementType + ". Possible values: " + BatchTableContainerType.allValues() + ".", e);
+                throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct, invalid type: " + strElementType + ". Possible values: " + ContainerType.allValues() + ".", e);
             }
-            return new BatchTableBinaryBodyReference(offset, componentType, containerType);
+            return new BinaryBodyReference(offset, componentType, containerType);
         }
         throw new IllegalArgumentException("Invalid BatchTableBinaryBodyReference struct: " + value + ".");
     }
@@ -563,7 +608,7 @@ public class FeatureUtils {
             throw new IllegalArgumentException("No such property: " + propName + ".");
         }
         if (objValue instanceof Map) {
-            BatchTableBinaryBodyReference reference = toReference(objValue);
+            BinaryBodyReference reference = toReference(objValue);
             return getBatchTableValues(reference, binaryBuffer, propName, batchLength);
         } else if (objValue instanceof List) {
             return (List<?>) objValue;

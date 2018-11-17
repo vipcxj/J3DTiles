@@ -1,5 +1,6 @@
 package me.cxj.j3dtiles.model.v1;
 
+import me.cxj.j3dtiles.utils.CommonUtils;
 import me.cxj.j3dtiles.utils.FeatureUtils;
 import me.cxj.j3dtiles.utils.JsonParser;
 import me.cxj.j3dtiles.utils.LittleEndianDataInputStream;
@@ -46,32 +47,26 @@ public class B3dmFeatureTable {
         return table;
     }
 
-    public byte[] createBuffer(B3dmHeader header, JsonParser parser) {
+    private Map<String, Object> createData() {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put(PROP_BATCH_LENGTH, BATCH_LENGTH);
         if (RTC_CENTER != null) {
             data.put(PROP_RTC_CENTER, RTC_CENTER);
         }
-        byte[] bytes = parser.toJsonString(data).getBytes(StandardCharsets.UTF_8);
-        int size = bytes.length;
-        int pad = size % 8;
-        if (pad != 0) {
-            pad = 8 - pad;
-        }
-        if (pad != 0) {
-            byte[] out = new byte[size + pad];
-            System.arraycopy(bytes, 0, out, 0, size);
-            for (int i = 0; i < pad; ++i) {
-                out[size + i] = 0x20;
-            }
-            header.setFeatureTableJSONByteLength(out.length);
-            header.setFeatureTableBinaryByteLength(0);
-            return out;
-        } else {
-            header.setFeatureTableJSONByteLength(size);
-            header.setFeatureTableBinaryByteLength(0);
-            return bytes;
-        }
+        return data;
+    }
+
+    public byte[] createBuffer(B3dmHeader header, JsonParser parser) {
+        byte[] bytes = parser.toJsonString(createData()).getBytes(StandardCharsets.UTF_8);
+        bytes = CommonUtils.createPaddingBytes(bytes, header.getHeaderLength() + bytes.length, 8, (byte) 0x20);
+        header.setFeatureTableJSONByteLength(bytes.length);
+        header.setFeatureTableBinaryByteLength(0);
+        return bytes;
+    }
+
+    public long calcSize(B3dmHeader header, JsonParser parser) {
+        byte[] bytes = parser.toJsonString(createData()).getBytes(StandardCharsets.UTF_8);
+        return bytes.length + CommonUtils.calcPadding(header.getHeaderLength() + bytes.length, 8);
     }
 
     public int getBatchLength() {

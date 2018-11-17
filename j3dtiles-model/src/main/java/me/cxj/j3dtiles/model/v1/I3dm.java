@@ -15,7 +15,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Created by vipcxj on 2018/11/7.
  */
-public class I3dm {
+public class I3dm implements TileModel {
 
     private I3dmHeader header;
     private I3dmFeatureTable featureTable;
@@ -45,33 +45,48 @@ public class I3dm {
         return instance;
     }
 
+    @Override
     @SuppressWarnings("Duplicates")
     public void write(OutputStream os, JsonParser parser) throws IOException {
         byte[] featureTableBuffer = featureTable.createBuffer(header, parser);
         byte[] batchTableBuffer = batchTable.createBuffer(header, parser, featureTable.getInstancesLength());
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()){
-            if (header.getGltfFormat() == 0) {
-                byte[] gltfBuffer = CommonUtils.createPaddingBytes(gltfUri.getBytes(StandardCharsets.UTF_8), 8, (byte) 0x20);
-                header.setByteLength(featureTableBuffer.length + batchTableBuffer.length + gltfBuffer.length);
-                header.write(os);
-                os.write(featureTableBuffer);
-                os.write(batchTableBuffer);
-                os.write(gltfBuffer);
-            } else if (header.getGltfFormat() == 1) {
-                new GltfModelWriter().writeBinary(gltfModel, bos);
-                byte[] gltfBuffer = bos.toByteArray();
-                int gltfPadding = CommonUtils.calcPadding(gltfBuffer.length, 8);
-                header.setByteLength(featureTableBuffer.length + batchTableBuffer.length + gltfBuffer.length + gltfPadding);
-                header.write(os);
-                os.write(featureTableBuffer);
-                os.write(batchTableBuffer);
-                os.write(gltfBuffer);
-                for (int i = 0; i < gltfPadding; ++i) {
-                    os.write(0);
-                }
-            } else {
-                throw new IllegalArgumentException("Invalid gltfFormat value: " + header.getGltfFormat() + ".");
-            }
+        if (header.getGltfFormat() == 0) {
+            byte[] gltfBuffer = CommonUtils.createPaddingBytes(gltfUri.getBytes(StandardCharsets.UTF_8), 8, (byte) 0x20);
+            header.setByteLength(header.getHeaderLength() + featureTableBuffer.length + batchTableBuffer.length + gltfBuffer.length);
+            header.write(os);
+            os.write(featureTableBuffer);
+            os.write(batchTableBuffer);
+            os.write(gltfBuffer);
+        } else if (header.getGltfFormat() == 1) {
+            byte[] gltfBuffer = CommonUtils.getPadGltf(gltfModel, 8);
+            header.setByteLength(header.getHeaderLength() + featureTableBuffer.length + batchTableBuffer.length + gltfBuffer.length);
+            header.write(os);
+            os.write(featureTableBuffer);
+            os.write(batchTableBuffer);
+            os.write(gltfBuffer);
+        } else {
+            throw new IllegalArgumentException("Invalid gltfFormat value: " + header.getGltfFormat() + ".");
         }
+    }
+
+    public long calcSize(JsonParser parser) {
+        int gltfSize;
+        if (header.getGltfFormat() == 0) {
+            gltfSize = gltfUri.getBytes(StandardCharsets.UTF_8).length;
+            gltfSize += CommonUtils.calcPadding(gltfSize, 8);
+        } else if (header.getGltfFormat() == 1) {
+            gltfSize = CommonUtils.calcGltfSize(gltfModel, 8);
+        } else {
+            throw new IllegalArgumentException("Invalid gltfFormat value: " + header.getGltfFormat() + ".");
+        }
+        return header.getHeaderLength()
+                + featureTable.calcSize(header, parser)
+                + batchTable.calcSize(header, parser, featureTable.getInstancesLength())
+                + gltfSize;
+    }
+
+    @Override
+    public I3dmHeader getHeader() {
+        return header;
     }
 }
