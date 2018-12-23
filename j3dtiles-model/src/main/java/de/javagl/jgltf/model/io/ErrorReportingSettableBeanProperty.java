@@ -34,6 +34,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.PropertyName;
+import com.fasterxml.jackson.databind.deser.NullValueProvider;
 import com.fasterxml.jackson.databind.deser.SettableBeanProperty;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 
@@ -90,7 +91,12 @@ class ErrorReportingSettableBeanProperty extends SettableBeanProperty
         return new ErrorReportingSettableBeanProperty(
             delegate.withName(newName), jsonErrorConsumer);
     }
-    
+
+    @Override
+    public SettableBeanProperty withNullProvider(NullValueProvider nva) {
+        return new ErrorReportingSettableBeanProperty(delegate.withNullProvider(nva), jsonErrorConsumer);
+    }
+
     @Override
     public Object setAndReturn(Object instance, Object value)
         throws IOException
